@@ -1,0 +1,16 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    // "ghcr.io/devcontainers-extras/features/shell-utils:latest": {}
+  },
+  "forwardPorts":[8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "CMS Application Port",
+      "onAutoForward": "silent"
+    }
+  },
+  "updateContentCommand": "./generateEnv.sh && cd backstore && composer install && docker compose pull && docker compose up -d",
+  // "postCreateCommand": "docker compose up -d",
+  "postAttachCommand": "./makeCmsPortPublic.sh"
+}
