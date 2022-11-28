@@ -1,12 +1,28 @@
 version: '3.9'
 
 services:
-
-  cms:
-    image: backstore
+  storefront:
+    image: storefront
     pull_policy: never
     build:
-      context: ./backstore
+      context: ./storefront
+      # see exportUserAndGroupIds.sh
+      args:
+        - USER_ID
+        - GROUP_ID
+    ports:
+      - 3000:3000
+    env_file: .env
+    volumes:
+      - ./storefront:/app
+    extra_hosts:
+      - "cms.localhost:host-gateway"
+
+  cms:
+    image: cms
+    pull_policy: never
+    build:
+      context: ./cms
       # see exportUserAndGroupIds.sh
       args:
         - USER_ID
@@ -14,36 +30,33 @@ services:
     restart: always
     ports:
       - 8000:80
+    secrets:
+      - cms_db_password
     env_file: .env
     environment:
-      WORDPRESS_DB_HOST: db
-      WORDPRESS_DB_USER: $CMS_DB_USER
-      WORDPRESS_DB_PASSWORD: $CMS_DB_PASSWORD
-      WORDPRESS_DB_NAME: $CMS_DB_NAME
       WORDPRESS_CONFIG_EXTRA: |
-        define('SITE_HOST',
-            '' === getenv('CODESPACE_NAME') ?
-              'http://localhost:8000' :
-              "https://".getenv('CODESPACE_NAME')."-8000.".getenv('GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN')
-        );
-        define('WP_HOME', SITE_HOST);
-        define('WP_SITEURL', SITE_HOST);
+        define('WP_HOME', getenv('WORDPRESS_URL'));
+        define('WP_SITEURL', getenv('WORDPRESS_URL'));
+        define('WP_AUTO_UPDATE_CORE', true);
+        define('DISALLOW_FILE_MODS', true);
+        define('DISALLOW_FILE_EDIT', true);
+        define('SHOP_IS_ON_FRONT', true);
     volumes:
-      - ./backstore/wordpress:/var/www/html
-      - ./backstore/custom.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+      - ./cms/wordpress:/var/www/html
+      - ./cms/custom.ini:/usr/local/etc/php/conf.d/custom.ini:ro
 
   db:
     image: mariadb
     restart: always
     env_file: .env
-    environment:
-      MYSQL_DATABASE: $CMS_DB_NAME
-      MYSQL_USER: $CMS_DB_USER
-      MYSQL_PASSWORD: $CMS_DB_PASSWORD
-      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    secrets:
+      - cms_db_password
     volumes:
       - db:/var/lib/mysql
 
 volumes:
-  wordpress:
   db:
+
+secrets:
+  cms_db_password:
+    file: .secrets/cms_db_password

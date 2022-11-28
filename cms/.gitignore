@@ -9,6 +9,7 @@
 /_www
 
 # Standard Wordpress files and folders:
+/wordpress/.htaccess
 /wordpress/vendor/
 /wordpress/composer.json
 /wordpress/index.php
